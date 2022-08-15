@@ -6,11 +6,12 @@ from PIL import Image, ImageTk
 
 import YT_stream_handler
 
-
 thumb_size = 256, 256
 
 
 def get_YT_streams():
+    # INMPLEMENT CLENER CLASS CREATION - SELF
+    # TRY CATCH CLEAN UP
     url = yt_url.get()
 
     yt = YT_stream_handler.YTVideoDLOptions(url)
@@ -20,6 +21,11 @@ def get_YT_streams():
     print("Channel: ", yt.yt.channel_id.title())
     print("Published: ", yt.yt.publish_date)
     print("Thumb: ", yt.yt.thumbnail_url)
+
+    video_title["text"] = yt.yt.title
+    video_channel["text"] = yt.yt.channel_id
+    video_pub["text"] = yt.yt.publish_date
+    video_length["text"] = yt.yt.length
 
     try:
         img_request = requests.get(yt.yt.thumbnail_url)
@@ -116,7 +122,8 @@ root.resizable(False, False)
 
 options = {'padx': 5, 'pady': 5}
 
-default_img = Image.open("D:/Users/seanm/PycharmProjects/gui-desktop_app/default_thumb.jpg")
+# SET RELATIVE PATH FOR DEFAULT IMAGE
+default_img = Image.open("C:/Users/seanm/PycharmProjects/gui-desktop_app/default_thumb.jpg")
 default_img.thumbnail(thumb_size, Image.ANTIALIAS)
 default_thumbn = ImageTk.PhotoImage(default_img)
 
@@ -149,16 +156,23 @@ video_thumb.grid(row=3, column=0, columnspan=3, sticky='W', **options)
 
 title_label = ttk.Label(main, text="Title: ")
 title_label.grid(row=4, column=0, sticky='W', **options)
-
 video_title = ttk.Label(main, text="")
 video_title.grid(row=4, column=1, sticky='W', **options)
 
 channel_label = ttk.Label(main, text="Channel: ")
 channel_label.grid(row=5, column=0, sticky='W', **options)
+video_channel = ttk.Label(main, text="")
+video_channel.grid(row=5, column=1, sticky='W', **options)
+
 pub_label = ttk.Label(main, text="Published: ")
 pub_label.grid(row=6, column=0, sticky='W', **options)
+video_pub = ttk.Label(main, text="")
+video_pub.grid(row=6, column=1, sticky='W', **options)
+
 length_label = ttk.Label(main, text="Length: ")
 length_label.grid(row=7, column=0, sticky='W', **options)
+video_length = ttk.Label(main, text="")
+video_length.grid(row=4, column=1, sticky='W', **options)
 
 root.mainloop()
 
