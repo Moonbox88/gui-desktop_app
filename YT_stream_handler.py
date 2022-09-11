@@ -13,7 +13,5 @@ class YTVideoDLOptions:
 
         except VideoUnavailable:
             print(f'Video "{self.url}" is unavailable, skipping.')
-            exit()
         except pytube.exceptions.RegexMatchError:
             print(f'Input "{self.url}" is not valid, skipping.')
-            exit()

@@ -1,4 +1,7 @@
 import io
+import sys
+import time
+import pickle
 import requests
 import tkinter as tk
 from tkinter import ttk
@@ -8,26 +11,36 @@ import YT_stream_handler
 
 thumb_size = 256, 256
 
+# THREAD to run pacman animation
+
+# TREAD to countdown life of yt obj and clear when expired
+
+def download_stream():
+    fileObj = open('data.obj', 'rb')
+    yt = pickle.load(fileObj)
+
+    for i in streams_list.curselection():
+        info = streams_list.get(i).split(" - ")
+        stream = yt.yt.streams.get_by_itag(info[0])
+        stream.download()
+
+
+    fileObj.close()
 
 def get_YT_streams():
-    # INMPLEMENT CLENER CLASS CREATION - SELF
-    # TRY CATCH CLEAN UP
     url = yt_url.get()
 
     yt = YT_stream_handler.YTVideoDLOptions(url)
 
-    print("Title: ", yt.yt.title)
-    print("Length of video: ", yt.yt.length, "seconds")
-    print("Channel: ", yt.yt.channel_id.title())
-    print("Published: ", yt.yt.publish_date)
-    print("Thumb: ", yt.yt.thumbnail_url)
-
-    video_title["text"] = yt.yt.title
-    video_channel["text"] = yt.yt.channel_id
-    video_pub["text"] = yt.yt.publish_date
-    video_length["text"] = yt.yt.length
-
     try:
+        if len(yt.yt.title) >= 66:
+            clipped = yt.yt.title[:65]
+            video_title["text"] = clipped + "..."
+        else:
+            video_title["text"] = yt.yt.title
+        video_channel["text"] = yt.yt.author
+        video_pub["text"] = yt.yt.publish_date
+        video_length["text"] = yt.yt.length
         img_request = requests.get(yt.yt.thumbnail_url)
 
         if img_request.status_code == requests.codes.ok:
@@ -48,82 +61,64 @@ def get_YT_streams():
     print(f'Searching for progressive stream for {yt.url}')
     try:
         prog_streams = yt.yt.streams.filter(progressive=True).order_by('resolution').desc()
+        streams_list.insert(count, '*** progressive ***')
+        for each in prog_streams:
+            count += 1
+            streams_list.insert(count, f'{each.itag} - {each.filesize} - {each.resolution} - {each.subtype}')
     except AttributeError:
         print("1...No streams available...")
     except TypeError:
         print("2...No streams available...")
 
-    for each in prog_streams:
-        print(each)
-        print(each.filesize, each.resolution)
-
-        streams_list.insert(count, f'{each.filesize} - {each.resolution}')
-        count += 1
 
     print(f'Searching for adaptive stream for {yt.url}')
     try:
         adap_streams = yt.yt.streams.filter(adaptive=True).order_by('resolution').desc()
+        count += 1
+        streams_list.insert(count, '*** adaptive ***')
+        for each in adap_streams:
+            count += 1
+            streams_list.insert(count, f'{each.itag} - {each.filesize} - {each.resolution} - {each.subtype}')
     except AttributeError:
         print("1...No streams available...")
     except TypeError:
         print("2...No streams available...")
 
-    for each in adap_streams:
-        print(each)
 
-    # ... .filter(progressive=True, file_extension='mp4')
-    # ... .order_by('resolution')
-    # ... .desc()
-    # ... .first()
-    # ... .download()
+    print(f'Searching for audio stream for {yt.url}')
+    try:
+        audio_streams = yt.yt.streams.filter(only_audio=True).desc()
+        count += 1
+        streams_list.insert(count, '*** audio ***')
+        for each in audio_streams:
+            count += 1
+            streams_list.insert(count)
+    except AttributeError:
+        print("1...No streams available...")
+    except TypeError:
+        print("2...No streams available...")
 
-    '''
-    stream = yt.yt.streams.filter(progressive=True).get_highest_resolution()
+    fileObj = open('data.obj', 'wb')
+    pickle.dump(yt, fileObj)
+    fileObj.close()
 
-    if not stream:
-        print(f'No progressive stream found for {yt.url}')
-        
-        print(f'Searching for adaptive stream for {yt.url}')
-        stream = yt.yt.streams.filter(adaptive=True).get_highest_resolution()
-        if stream == None:
-            print(f'No adaptive stream available for {yt.url}')
-            return None
-        else:
-            audio = yt.yt.streams.filter(only_audio=True).first()
-            if audio == None:
-                print(f'No audio stream found for {yt.url}')
-            else:
-                stream.stream_to_buffer()
-                print("merging video and audio")
-                # DOWNLOAD VIDEO AND AUDIO FILE
-                # MERGE VIDEO AND AUDIO
-
-                # ff = FFmpeg(
-                # ...     inputs={'video.mp4': None, 'audio.mp3': None},
-                # ...     outputs={'output.ts': '-c:v h264 -c:a ac3'}
-                # ... )
-                # >>> ff.cmd
-                # 'ffmpeg -i audio.mp4 -i video.mp4 -c:v h264 -c:a ac3 output.ts'
-                # >>> ff.run()
-        
-        return None
-    else:
-        return f'Progressive stream found for {yt.url}'
-        
-    '''
     url_entry.delete("0", "end")
+
+    #submit_button.state(["disabled"])  # Disable the button.
+    #time.sleep(10)
+    #submit_button.state(["!disabled"])  # Enable the button.
 
 
 root = tk.Tk()
 root.title("tk YouTube Video Downloader")
 root.option_add("*tearOff", False)
-root.geometry("900x400")
+root.geometry("900x450")
 root.resizable(False, False)
 
 options = {'padx': 5, 'pady': 5}
 
 # SET RELATIVE PATH FOR DEFAULT IMAGE
-default_img = Image.open("C:/Users/seanm/PycharmProjects/gui-desktop_app/default_thumb.jpg")
+default_img = Image.open("D:/Users/seanm/PycharmProjects/gui-desktop_app/default_thumb.jpg")
 default_img.thumbnail(thumb_size, Image.ANTIALIAS)
 default_thumbn = ImageTk.PhotoImage(default_img)
 
@@ -148,6 +143,8 @@ submit_button.grid(column=2, row=0, sticky='W', **options)
 
 streams_label = ttk.Label(main, text="Available streams: ")
 streams_label.grid(column=3, row=0, sticky='W', **options)
+get_stream_button = ttk.Button(main, text="Download", command=download_stream)
+get_stream_button.grid(column=3, row=0, sticky='E', **options)
 streams_list = tk.Listbox(main, height=20, width=50, selectmode='extended', background="yellow")
 streams_list.grid(column=3, row=1, rowspan=20, sticky='W', **options)
 
@@ -172,7 +169,15 @@ video_pub.grid(row=6, column=1, sticky='W', **options)
 length_label = ttk.Label(main, text="Length: ")
 length_label.grid(row=7, column=0, sticky='W', **options)
 video_length = ttk.Label(main, text="")
-video_length.grid(row=4, column=1, sticky='W', **options)
+video_length.grid(row=7, column=1, sticky='W', **options)
+
+space = ttk.Label(main, text=" ---------------------------------------------------")
+space.grid(column=0, row=8, columnspan=3, sticky='W', **options)
+space = ttk.Label(main, text=" ---------------------------------------------------")
+space.grid(column=0, row=9, columnspan=3, sticky='W', **options)
+
+animation_bar = ttk.Label(main, width=141, background="black")
+animation_bar.grid(column=0, row=10, rowspan=2, columnspan=4, sticky='W', **options)
 
 root.mainloop()
 
